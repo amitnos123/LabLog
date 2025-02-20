@@ -35,5 +35,3 @@ An example of a generated dashboard is available in [Dashboard_example.html](./D
 
 3. **Viewing the Dashboard**  
    - Open `Dashboard_example.html` in your browser to see an example of the final dashboard layout and functionality.
-
-Feel free to modify or extend these scripts according to your specific requirements. If you have any questions or issues, please consult the documentation in the provided PDF files or reach out to the repository maintainers.
