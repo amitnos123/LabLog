@@ -98,7 +98,7 @@ class PQube3Logger:
         # Check if file already exists
         file_exists = os.path.exists(self.output_file)
         if file_exists:
-            return pd.read_parquet(self.output_file, engine='pyarrow', compression='gzip')
+            return pd.read_parquet(self.output_file, engine='pyarrow')
         else:
             return pd.DataFrame(columns=['Timestamp'] + list(self.registers.keys()))
 
