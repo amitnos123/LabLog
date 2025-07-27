@@ -9,9 +9,10 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 import pandas as pd
 
 class PQube3Logger:
-    def __init__(self, host, port=502, interval=0.5):
+    def __init__(self, host, port=502, interval=0.5, buffer_length=20):
         self.client = ModbusTcpClient(host, port=port, timeout=3)  # Set timeout
         self.interval = interval
+        self.buffer_length = buffer_length 
         self.start_address = 7000  # The Modbus start address
         self.registers = {
             'L1-E Voltage': (self.start_address + 0, self.start_address + 1),
@@ -111,6 +112,8 @@ class PQube3Logger:
         # Open or append to today's log file
         df = self.get_init_data_frame(current_date)
 
+        buffer_count = 0
+
         try:
             while True:
                 # Prepare row data
@@ -123,8 +126,12 @@ class PQube3Logger:
                     row.append(value)
                 # Append the row to the DataFrame
                 df.loc[len(df)] = row
-                # Save DataFrame to Parquet file
-                df.to_parquet(self.output_file, compression='gzip')
+                buffer_count += 1
+                if buffer_count >= self.buffer_length:
+                    # Reset buffer count
+                    buffer_count = 0
+                    # Save DataFrame to Parquet file
+                    df.to_parquet(self.output_file)
 
                 # Write to InfluxDB
                 try:
@@ -160,6 +167,10 @@ class PQube3Logger:
                 new_date = datetime.datetime.now().strftime('%Y_%m_%d')
                 
                 if new_date != current_date:
+                    # Reset buffer count
+                    buffer_count = 0
+                    # Save DataFrame to Parquet file
+                    df.to_parquet(self.output_file)
                     # The day changed - close current file and open a new one
                     df = self.get_init_data_frame(current_date)
                     current_date = new_date
