@@ -133,14 +133,14 @@ class PQube3Logger:
                 # Append the row to the DataFrame
                 df.loc[len(df)] = row
 
-                self.fft_input.append(row[1])
-                if len(self.fft_input) > self.fft_input_length:
-                    # Remove the oldest entry if we exceed the length
-                    self.fft_input.pop(0)
-                    self.fft_freq = fft.fftfreq(len(self.fft_input), d=self.interval)
-                    self.fft_output = fft.fft(self.fft_input)
-                else:
-                    print("FFT input not yet full, skipping FFT calculation. FFT input length:", len(self.fft_input))
+                # self.fft_input.append(row[1])
+                # if len(self.fft_input) > self.fft_input_length:
+                #     # Remove the oldest entry if we exceed the length
+                #     self.fft_input.pop(0)
+                #     self.fft_freq = fft.fftfreq(len(self.fft_input), d=self.interval)
+                #     self.fft_output = fft.fft(self.fft_input)
+                # else:
+                #     print("FFT input not yet full, skipping FFT calculation. FFT input length:", len(self.fft_input))
 
                 buffer_count += 1
                 # Check if buffer count has reached the buffer length to write to file
@@ -174,12 +174,16 @@ class PQube3Logger:
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H7", row[17]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H8", row[18]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H9", row[19]))
-                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H10", row[20]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H10", row[19]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_THD", row[20]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Flicker_P_inst", row[21]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Flicker_P_st", row[22]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Flicker_P_lt", row[23]))
 
-                    if len(self.fft_input) >= self.fft_input_length:
-                        # Add FFT output data
-                        for i in range(len(self.fft_output)):
-                            points.append(influxdb_client.Point(measurement_name).tag("bin", str(i)).field("FFT_Output_Real", self.fft_output[i].real).field("FFT_Output_Imag", self.fft_output[i].imag).field("FFT_Frequency", self.fft_freq[i]))
+                    # if len(self.fft_input) >= self.fft_input_length:
+                    #     # Add FFT output data
+                    #     for i in range(len(self.fft_output)):
+                    #         points.append(influxdb_client.Point(measurement_name).tag("bin", str(i)).field("FFT_Output_Real", self.fft_output[i].real).field("FFT_Output_Imag", self.fft_output[i].imag).field("FFT_Frequency", self.fft_freq[i]))
                             
                     # Send all points in one request
                     self.write_api.write(bucket=self.influxdb_bucket, org=self.influxdb_org, record=points)
