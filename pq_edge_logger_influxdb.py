@@ -41,14 +41,17 @@ class PQube3Logger:
             'L1_Voltage_Harmonic_H9': (self.start_address + 2248, self.start_address + 2249),
             'L1_Voltage_Harmonic_H10': (self.start_address + 2250, self.start_address + 2251),
             'L1_Voltage_THD': (self.start_address + 192, self.start_address + 193),
+            'L1_Flicker_P_inst': (self.start_address + 72, self.start_address + 73),
+            'L1_Flicker_P_st': (self.start_address + 74, self.start_address + 75),
+            'L1_Flicker_P_lt': (self.start_address + 76, self.start_address + 77),
         }
 
         # InfluxDB client setup
-        self.influxdb_bucket = "influxdb_bucket"
-        self.influxdb_org = "influxdb_org"
-        self.influxdb_token = "influxdb_token"
+        self.influxdb_bucket = "lab_log"
+        self.influxdb_org = "quantic"
+        self.influxdb_token = "TH3w67sblztov35ULfIX9vKTpEf2duVfgj8JHVZzKYLCFEijO229bwMw7iJOPUYoHMYG0G1FBsy_DisolZdt1Q=="
         # Store the URL of your InfluxDB instance
-        self.influxdb_url="influxdb_url"
+        self.influxdb_url="http://132.77.44.235:8086"
         self.influxdb_client = influxdb_client.InfluxDBClient(
             url=self.influxdb_url,
             token=self.influxdb_token,
@@ -169,10 +172,9 @@ class PQube3Logger:
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H3", row[12]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H4", row[13]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H5", row[14]))
-                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_THD", row[15]))
-                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H6", row[16]))
-                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H7", row[17]))
-                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H8", row[18]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H6", row[15]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H7", row[16]))
+                    points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H8", row[17]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H9", row[19]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H10", row[19]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_THD", row[20]))
@@ -209,6 +211,6 @@ class PQube3Logger:
             df.to_parquet(self.output_file, compression='gzip')
 
 if __name__ == '__main__':
-    pq_logger = PQube3Logger(host='PQube3LoggerAddress')  # Replace with actual IP
+    pq_logger = PQube3Logger(host='132.77.44.166')  # Replace with actual IP
     pq_logger.connect()
     pq_logger.log_data()
