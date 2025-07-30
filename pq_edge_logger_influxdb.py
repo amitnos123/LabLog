@@ -7,13 +7,19 @@ from pymodbus.exceptions import ModbusException, ConnectionException
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
 import pandas as pd
+import scipy.fft as fft
+import numpy as np
 
 class PQube3Logger:
-    def __init__(self, host, port=502, interval=0.5, buffer_length=20):
+    def __init__(self, host, port=502, interval=0.08, buffer_length=20, fft_input_length=1000):
         self.client = ModbusTcpClient(host, port=port, timeout=3)  # Set timeout
         self.interval = interval
         self.buffer_length = buffer_length 
         self.start_address = 7000  # The Modbus start address
+        self.fft_input_length = fft_input_length # Length of FFT input in intervals. 1000 intervals means 8.3 minutes of data at 0.5s intervals.
+        self.fft_input = [0 for _ in range(self.fft_input_length)]  # Initialize FFT input array
+        self.fft_output = []  
+        self.fft_freq = [] # Frequency bins for FFT, assuming uniform sampling
         self.registers = {
             'L1-E Voltage': (self.start_address + 0, self.start_address + 1),
             'Frequency': (self.start_address + 26, self.start_address + 27),
@@ -126,13 +132,24 @@ class PQube3Logger:
                     row.append(value)
                 # Append the row to the DataFrame
                 df.loc[len(df)] = row
+
+                self.fft_input.append(row[1])
+                if len(self.fft_input) > self.fft_input_length:
+                    # Remove the oldest entry if we exceed the length
+                    self.fft_input.pop(0)
+                    self.fft_freq = fft.fftfreq(len(self.fft_input), d=self.interval)
+                    self.fft_output = fft.fft(self.fft_input)
+                else:
+                    print("FFT input not yet full, skipping FFT calculation. FFT input length:", len(self.fft_input))
+
                 buffer_count += 1
+                # Check if buffer count has reached the buffer length to write to file
                 if buffer_count >= self.buffer_length:
                     # Reset buffer count
                     buffer_count = 0
                     # Save DataFrame to Parquet file
                     df.to_parquet(self.output_file)
-
+                
                 # Write to InfluxDB
                 try:
                     points = []
@@ -159,6 +176,11 @@ class PQube3Logger:
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H9", row[19]))
                     points.append(influxdb_client.Point(measurement_name).field("L1_Voltage_Harmonic_H10", row[20]))
 
+                    if len(self.fft_input) >= self.fft_input_length:
+                        # Add FFT output data
+                        for i in range(len(self.fft_output)):
+                            points.append(influxdb_client.Point(measurement_name).tag("bin", str(i)).field("FFT_Output_Real", self.fft_output[i].real).field("FFT_Output_Imag", self.fft_output[i].imag).field("FFT_Frequency", self.fft_freq[i]))
+                            
                     # Send all points in one request
                     self.write_api.write(bucket=self.influxdb_bucket, org=self.influxdb_org, record=points)
                 except Exception as e:
